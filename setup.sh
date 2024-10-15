@@ -1,51 +1,56 @@
 #!/bin/bash
 
-# This script is meant to be run after cloning the repository
-# It will help set up the project for development
+# Prompt user for the new repository name
+echo "Enter the new repository name (e.g., medicare-api):"
+read repo_name
 
-echo "Welcome to the NestJS Boilerplate Setup"
+# Optional: Prompt for the repository visibility (public/private)
+echo "Do you want the repository to be public or private? (p/P for private, anything else for public):"
+read visibility
 
-# Step 1: Install dependencies
-echo "Installing dependencies using npm..."
-npm install
+if [[ "$visibility" == "p" || "$visibility" == "P" ]]; then
+  visibility_flag="--private"
+else
+  visibility_flag="--public"
+fi
 
-# Step 2: Remove existing git remote
-echo "Removing existing git remote..."
-git remote remove origin
+# Get the GitHub username
+username=$(gh api user | jq -r .login)
 
-# Step 3: Prompt user for a new git remote URL
-echo "Enter the new remote repository URL (e.g., https://github.com/username/repo.git):"
-read REMOTE_URL
+# Create a new GitHub repository using the GitHub CLI
+echo "Creating the new GitHub repository $repo_name under user $username..."
+gh repo create "$username/$repo_name" --source=. $visibility_flag --remote=origin
 
-# Step 4: Add the new git remote
+# Add the new remote
 echo "Adding the new remote..."
-git remote add origin "$REMOTE_URL"
+git remote set-url origin "https://github.com/$username/$repo_name.git"
 
-# Step 5: Verify the new remote URL
-echo "New remote repository has been set to:"
-git remote -v
+# Add `.env` to `.gitignore` if it's not already there
+if ! grep -q ".env" .gitignore; then
+  echo ".env" >> .gitignore
+  echo "Added .env to .gitignore"
+else
+  echo ".env is already listed in .gitignore"
+fi
 
-# Step 6: Ask if user wants to commit and push changes
+# Commit and push if the user wants to
 echo "Would you like to commit and push the current code to the new repository? (y/n)"
-read PUSH_CONFIRM
+read push_confirm
 
-if [ "$PUSH_CONFIRM" = "y" ]; then
-  # Step 7: Get the current branch name
-  current_branch=$(git branch --show-current)
-  
-  if [ -z "$current_branch" ]; then
-    # If the current branch is empty, initialize the repository and set a branch
-    echo "No branch detected, initializing a new repository with 'main' branch."
-    git checkout -b main
-    current_branch="main"
-  fi
+if [[ "$push_confirm" == "y" ]]; then
+  echo "Pushing the code to the remote repository on the 'main' branch..."
 
-  # Step 8: Commit and push
+  # Check out 'main' or 'master' branch depending on the situation
+  git checkout main 2>/dev/null || git checkout master 2>/dev/null || {
+    echo "No 'main' or 'master' branch found. Please make sure you're on the right branch."
+    exit 1
+  }
+
   git add .
   git commit -m "Initial commit"
-  
-  echo "Pushing the code to the remote repository on the '$current_branch' branch..."
-  git push -u origin "$current_branch"
+  git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
+else
+  echo "Push operation skipped."
 fi
 
 echo "Setup complete!"
