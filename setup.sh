@@ -21,9 +21,14 @@ username=$(gh api user | jq -r .login)
 echo "Creating the new GitHub repository $repo_name under user $username..."
 gh repo create "$username/$repo_name" --source=. $visibility_flag --remote=origin
 
-# Add the new remote
-echo "Adding the new remote..."
-git remote set-url origin "https://github.com/$username/$repo_name.git"
+# Check if the remote "origin" already exists
+if git remote get-url origin >/dev/null 2>&1; then
+  echo "Remote 'origin' already exists. Updating the remote URL..."
+  git remote set-url origin "https://github.com/$username/$repo_name.git"
+else
+  echo "Adding the new remote..."
+  git remote add origin "https://github.com/$username/$repo_name.git"
+fi
 
 # Add `.env` to `.gitignore` if it's not already there
 if ! grep -q ".env" .gitignore; then
