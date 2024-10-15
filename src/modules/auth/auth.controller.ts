@@ -5,10 +5,14 @@ import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { EmailService } from 'src/common/email/email.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -25,6 +29,15 @@ export class AuthController {
       secure: true,
     });
     return res.status(200).json({ message: 'Logged out successfully' });
+  }
+
+  @Post('send-reset-password')
+  async sendPasswordReset(
+    @Body('email') email: string,
+    @Body('resetLink') resetLink: string,
+  ) {
+    await this.emailService.sendPasswordResetEmail(email, resetLink);
+    return { message: 'Password reset email sent successfully' };
   }
 
   @UseGuards(JwtAuthGuard)

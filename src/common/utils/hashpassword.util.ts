@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 10;
 
@@ -12,6 +12,8 @@ export const comparePassword = async (
   password: string,
   hashedPassword: string,
 ): Promise<boolean> => {
+  console.log('password:', password, 'hashedPassword:', hashedPassword);
+
   const isMatch = await bcrypt.compare(password, hashedPassword);
   return isMatch;
 };
